@@ -152,7 +152,6 @@ public class UIMeshAnchoringV2 : MonoBehaviour
         {
             Vector3[] parentCorners = new Vector3[4];
             refParentTransform.GetWorldCorners(parentCorners);
-            float radius = 4;
 
             Gizmos.color = new Color(1,1,1,0.3f);
             Gizmos.DrawLine(parentCorners[0], parentCorners[1]);
@@ -160,18 +159,15 @@ public class UIMeshAnchoringV2 : MonoBehaviour
             Gizmos.DrawLine(parentCorners[2], parentCorners[3]);
             Gizmos.DrawLine(parentCorners[3], parentCorners[0]);
 
+            /*float radius = (HandleUtility.GetHandleSize(new Vector3(0, 0, 0))) * 0.1f;
             Gizmos.color = Color.blue;
             Gizmos.DrawWireSphere(new Vector3(refBounds.min.x, refBounds.min.y, transform.position.z), radius);
 
             Gizmos.color = Color.green;
-            Gizmos.DrawWireSphere(new Vector3(refBounds.max.x, refBounds.max.y, transform.position.z), radius);
+            Gizmos.DrawWireSphere(new Vector3(refBounds.max.x, refBounds.max.y, transform.position.z), radius);*/
 
             var min = (Vector2)GetMinAnchorCurrentWorldPosition(parentCorners) + minOffset;
             var max = (Vector2)GetMaxAnchorCurrentWorldPosition(parentCorners) + maxOffset;
-
-            Gizmos.color = Color.red;
-            Gizmos.DrawWireSphere(new Vector3(max.x, max.y, transform.position.z), radius);
-            Gizmos.DrawWireSphere(new Vector3(min.x, min.y, transform.position.z), radius);
 
             Gizmos.color = Color.blue;
             Gizmos.DrawLine(GetMinAnchorCurrentWorldPosition(parentCorners), new Vector3(refBounds.min.x, refBounds.min.y, transform.position.z));
@@ -227,14 +223,16 @@ public class UIScalerEditorV2 : Editor
             Undo.RecordObject(obj, "Anchors Positions Changed");
 
             obj.minAnchor = new Vector2(
-            (corners[0].x - minAnchor.x) / (corners[0].x - corners[2].x),
-            (corners[0].y - minAnchor.y) / (corners[0].y - corners[2].y));
+             Mathf.Clamp01( (corners[0].x - minAnchor.x) / (corners[0].x - corners[2].x) ),
+             Mathf.Clamp01( (corners[0].y - minAnchor.y) / (corners[0].y - corners[2].y) ) );
+
             obj.maxAnchor = new Vector2(
-                (corners[0].x - maxAnchor.x) / (corners[0].x - corners[2].x),
-                (corners[0].y - maxAnchor.y) / (corners[0].y - corners[2].y));
+                 Mathf.Clamp01( (corners[0].x - maxAnchor.x) / (corners[0].x - corners[2].x) ),
+                 Mathf.Clamp01( (corners[0].y - maxAnchor.y) / (corners[0].y - corners[2].y) ) );
             obj.SetOffsets(corners);
 
         }
     }
 }
 #endif
+ 
