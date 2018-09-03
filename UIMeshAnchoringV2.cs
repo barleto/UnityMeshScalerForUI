@@ -246,6 +246,8 @@ public class UIScalerEditorV2 : Editor
         float handleSize = HandleUtility.GetHandleSize(new Vector3(size, size, 1));
         Vector3 snap = Vector3.one * 0.5f;
 
+        DrawSegmentedBox(obj, obj.GetMinAnchorCurrentWorldPosition(corners), obj.GetMaxAnchorCurrentWorldPosition(corners));
+
         EditorGUI.BeginChangeCheck();
 
         if (SceneView.lastActiveSceneView.in2DMode)
@@ -253,27 +255,37 @@ public class UIScalerEditorV2 : Editor
             minAnchor = Handles.FreeMoveHandle(obj.GetMinAnchorCurrentWorldPosition(corners), Quaternion.identity,3,Vector3.one,DrawMinHandlesCap);
             maxAnchor = Handles.FreeMoveHandle(obj.GetMaxAnchorCurrentWorldPosition(corners), Quaternion.identity,3, Vector3.one, DrawMaxHandlesCap);
 
-            /*float radius = (HandleUtility.GetHandleSize(new Vector3(0, 0, 0))) * 0.1f;
-            Handles.DrawSolidDisc(obj.GetMinAnchorCurrentWorldPosition(corners), -obj.transform.forward, radius);
-            Handles.DrawSolidDisc(obj.GetMaxAnchorCurrentWorldPosition(corners), -obj.transform.forward, radius);*/
-
-
             if (EditorGUI.EndChangeCheck())
             {
                 Undo.RecordObject(obj, "Anchors Positions Changed");
 
-                obj.minAnchor = new Vector2(
+                minAnchor = new Vector2(
                  Mathf.Clamp01((corners[0].x - minAnchor.x) / (corners[0].x - corners[2].x)),
                  Mathf.Clamp01((corners[0].y - minAnchor.y) / (corners[0].y - corners[2].y)));
 
-                obj.maxAnchor = new Vector2(
+                maxAnchor = new Vector2(
                      Mathf.Clamp01((corners[0].x - maxAnchor.x) / (corners[0].x - corners[2].x)),
                      Mathf.Clamp01((corners[0].y - maxAnchor.y) / (corners[0].y - corners[2].y)));
-                obj.SetOffsets(corners);
 
+                obj.SetOffsets(corners);
             }
         }
     }
+
+    private void DrawSegmentedBox(UIMeshAnchoringV2 obj, Vector3 minAnchor, Vector3 maxAnchor)
+    {
+        var upperLeft = new Vector3(minAnchor.x, maxAnchor.y, minAnchor.z);
+        var lowerRight = new Vector3(maxAnchor.x, minAnchor.y, minAnchor.z);
+        int dottedSize = 5;
+
+        Handles.DrawDottedLine(minAnchor, upperLeft, dottedSize);
+        Handles.DrawDottedLine(upperLeft, maxAnchor, dottedSize);
+        Handles.DrawDottedLine(maxAnchor, lowerRight, dottedSize);
+        Handles.DrawDottedLine(lowerRight, minAnchor, dottedSize);
+
+    }
+
+    const float arrowRadius = 2;
 
     void DrawMinHandlesCap(int controlID, Vector3 position, Quaternion rotation, float size, EventType eventType)
     {
@@ -282,14 +294,14 @@ public class UIScalerEditorV2 : Editor
         {
             case EventType.Repaint:
                 Handles.DrawAAConvexPolygon(position,
-                    position + new Vector3(-radius / 3, -radius, 0),
-                    position + new Vector3(-radius, -radius / 3, 0),
+                    position + new Vector3(-radius / arrowRadius, -radius, 0),
+                    position + new Vector3(-radius, -radius / arrowRadius, 0),
                     position);
                 Color c = Handles.color;
                 Handles.color = new Color(0f,0f,0f,1f);
                 Handles.DrawAAPolyLine(5, position,
-                    position + new Vector3(-radius / 3, -radius, 0),
-                    position + new Vector3(-radius, -radius / 3, 0),
+                    position + new Vector3(-radius / arrowRadius, -radius, 0),
+                    position + new Vector3(-radius, -radius / arrowRadius, 0),
                     position);
                 Handles.color = c;
                 break;
@@ -307,14 +319,14 @@ public class UIScalerEditorV2 : Editor
         {
             case EventType.Repaint:
                 Handles.DrawAAConvexPolygon(position,
-                    position + new Vector3(radius / 3, radius, 0),
-                    position + new Vector3(radius, radius / 3, 0),
+                    position + new Vector3(radius / arrowRadius, radius, 0),
+                    position + new Vector3(radius, radius / arrowRadius, 0),
                     position);
                 Color c = Handles.color;
                 Handles.color = new Color(0f, 0f, 0f, 1f);
                 Handles.DrawAAPolyLine(5, position,
-                    position + new Vector3(radius / 3, radius, 0),
-                    position + new Vector3(radius, radius / 3, 0),
+                    position + new Vector3(radius / arrowRadius, radius, 0),
+                    position + new Vector3(radius, radius / arrowRadius, 0),
                     position);
                 Handles.color = c;
                 break;
