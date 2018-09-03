@@ -259,11 +259,11 @@ public class UIScalerEditorV2 : Editor
             {
                 Undo.RecordObject(obj, "Anchors Positions Changed");
 
-                minAnchor = new Vector2(
+                obj.minAnchor = new Vector2(
                  Mathf.Clamp01((corners[0].x - minAnchor.x) / (corners[0].x - corners[2].x)),
                  Mathf.Clamp01((corners[0].y - minAnchor.y) / (corners[0].y - corners[2].y)));
 
-                maxAnchor = new Vector2(
+                obj.maxAnchor = new Vector2(
                      Mathf.Clamp01((corners[0].x - maxAnchor.x) / (corners[0].x - corners[2].x)),
                      Mathf.Clamp01((corners[0].y - maxAnchor.y) / (corners[0].y - corners[2].y)));
 
