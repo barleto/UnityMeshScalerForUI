@@ -51,6 +51,9 @@ public class UIMeshAnchoringV2 : MonoBehaviour
 
     private void CalculateMeshSize()
     {
+        if(refParentTransform == null){
+            return;
+        }
         Vector3[] parentCorners = new Vector3[4];
         refParentTransform.GetWorldCorners(parentCorners);
 
@@ -111,7 +114,10 @@ public class UIMeshAnchoringV2 : MonoBehaviour
         if (Selection.Contains(this.gameObject.GetInstanceID()))
         {
             RecordReferenceParameters();
-            refParentTransform.GetWorldCorners(refParentCorners);
+            if (refParentTransform != null)
+            {
+                refParentTransform.GetWorldCorners(refParentCorners);
+            }
 
             if (!hasStarted)
             {
@@ -191,10 +197,37 @@ public class UIScalerEditorV2 : Editor
 
     public override void OnInspectorGUI()
     {
+        UIMeshAnchoringV2 obj = (UIMeshAnchoringV2)target;
+
+        if(!(obj.transform.parent is RectTransform)){
+            EditorGUILayout.HelpBox("The parent object must have a Rect Transform.", MessageType.Error);
+        }
 
         DrawDefaultInspector();
 
+        SnapAnchorsToCroners(obj);
+
         serializedObject.ApplyModifiedProperties();
+    }
+
+    void SnapAnchorsToCroners(UIMeshAnchoringV2 obj)
+    {
+        if (obj.refParentTransform == null)
+        {
+            return;
+        }
+        Vector3[] corners = new Vector3[4];
+        obj.refParentTransform.GetWorldCorners(corners);
+        if (GUILayout.Button("Snap Anchors to Corners"))
+        {
+            Undo.RecordObject(obj, "Snap acnhros to corners.");
+            obj.minAnchor = new Vector2(
+                (obj.refBounds.min.x - corners[0].x) / (corners[2].x - corners[0].x),
+                (obj.refBounds.min.y - corners[0].y) / (corners[2].y - corners[0].y));
+            obj.maxAnchor = new Vector2(
+                (obj.refBounds.max.x - corners[0].x) / (corners[2].x - corners[0].x),
+                (obj.refBounds.max.y - corners[0].y) / (corners[2].y - corners[0].y));
+        }
     }
 
     protected virtual void OnSceneGUI()
@@ -214,23 +247,81 @@ public class UIScalerEditorV2 : Editor
         Vector3 snap = Vector3.one * 0.5f;
 
         EditorGUI.BeginChangeCheck();
-        
-        minAnchor = Handles.PositionHandle(obj.GetMinAnchorCurrentWorldPosition(corners), Quaternion.identity);
-        maxAnchor = Handles.PositionHandle(obj.GetMaxAnchorCurrentWorldPosition(corners), Quaternion.identity);
 
-        if (EditorGUI.EndChangeCheck())
+        if (SceneView.lastActiveSceneView.in2DMode)
         {
-            Undo.RecordObject(obj, "Anchors Positions Changed");
+            minAnchor = Handles.FreeMoveHandle(obj.GetMinAnchorCurrentWorldPosition(corners), Quaternion.identity,3,Vector3.one,DrawMinHandlesCap);
+            maxAnchor = Handles.FreeMoveHandle(obj.GetMaxAnchorCurrentWorldPosition(corners), Quaternion.identity,3, Vector3.one, DrawMaxHandlesCap);
 
-            obj.minAnchor = new Vector2(
-             Mathf.Clamp01( (corners[0].x - minAnchor.x) / (corners[0].x - corners[2].x) ),
-             Mathf.Clamp01( (corners[0].y - minAnchor.y) / (corners[0].y - corners[2].y) ) );
+            /*float radius = (HandleUtility.GetHandleSize(new Vector3(0, 0, 0))) * 0.1f;
+            Handles.DrawSolidDisc(obj.GetMinAnchorCurrentWorldPosition(corners), -obj.transform.forward, radius);
+            Handles.DrawSolidDisc(obj.GetMaxAnchorCurrentWorldPosition(corners), -obj.transform.forward, radius);*/
 
-            obj.maxAnchor = new Vector2(
-                 Mathf.Clamp01( (corners[0].x - maxAnchor.x) / (corners[0].x - corners[2].x) ),
-                 Mathf.Clamp01( (corners[0].y - maxAnchor.y) / (corners[0].y - corners[2].y) ) );
-            obj.SetOffsets(corners);
 
+            if (EditorGUI.EndChangeCheck())
+            {
+                Undo.RecordObject(obj, "Anchors Positions Changed");
+
+                obj.minAnchor = new Vector2(
+                 Mathf.Clamp01((corners[0].x - minAnchor.x) / (corners[0].x - corners[2].x)),
+                 Mathf.Clamp01((corners[0].y - minAnchor.y) / (corners[0].y - corners[2].y)));
+
+                obj.maxAnchor = new Vector2(
+                     Mathf.Clamp01((corners[0].x - maxAnchor.x) / (corners[0].x - corners[2].x)),
+                     Mathf.Clamp01((corners[0].y - maxAnchor.y) / (corners[0].y - corners[2].y)));
+                obj.SetOffsets(corners);
+
+            }
+        }
+    }
+
+    void DrawMinHandlesCap(int controlID, Vector3 position, Quaternion rotation, float size, EventType eventType)
+    {
+        float radius = (HandleUtility.GetHandleSize(position)) * 0.2f;
+        switch (eventType)
+        {
+            case EventType.Repaint:
+                Handles.DrawAAConvexPolygon(position,
+                    position + new Vector3(-radius / 3, -radius, 0),
+                    position + new Vector3(-radius, -radius / 3, 0),
+                    position);
+                Color c = Handles.color;
+                Handles.color = new Color(0f,0f,0f,1f);
+                Handles.DrawAAPolyLine(5, position,
+                    position + new Vector3(-radius / 3, -radius, 0),
+                    position + new Vector3(-radius, -radius / 3, 0),
+                    position);
+                Handles.color = c;
+                break;
+            case EventType.Layout:
+                HandleUtility.AddControl(controlID,
+                    HandleUtility.DistanceToCircle(position, radius));
+                break;
+        }
+    }
+
+    void DrawMaxHandlesCap(int controlID, Vector3 position, Quaternion rotation, float size, EventType eventType)
+    {
+        float radius = (HandleUtility.GetHandleSize(position)) * 0.2f;
+        switch (eventType)
+        {
+            case EventType.Repaint:
+                Handles.DrawAAConvexPolygon(position,
+                    position + new Vector3(radius / 3, radius, 0),
+                    position + new Vector3(radius, radius / 3, 0),
+                    position);
+                Color c = Handles.color;
+                Handles.color = new Color(0f, 0f, 0f, 1f);
+                Handles.DrawAAPolyLine(5, position,
+                    position + new Vector3(radius / 3, radius, 0),
+                    position + new Vector3(radius, radius / 3, 0),
+                    position);
+                Handles.color = c;
+                break;
+            case EventType.Layout:
+                HandleUtility.AddControl(controlID,
+                    HandleUtility.DistanceToCircle(position, radius));
+                break;
         }
     }
 }
