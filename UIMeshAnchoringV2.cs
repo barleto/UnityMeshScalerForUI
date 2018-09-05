@@ -30,6 +30,10 @@ public class UIMeshAnchoringV2 : MonoBehaviour
     [HideInInspector]
     public Vector3[] refParentCorners = new Vector3[4];
 
+    private void Reset()
+    {
+        RecalculateAnchors();
+    }
 
     public Vector3 GetMinAnchorCurrentWorldPosition(Vector3[] corners)
     {
@@ -102,18 +106,8 @@ public class UIMeshAnchoringV2 : MonoBehaviour
         }
     }
 
-#if UNITY_EDITOR
-    bool hasStarted = false;
-
-    private void OnDrawGizmos()
-    {
-        if (EditorApplication.isPlaying)
-        {
-            return;
-        }
-        if (Selection.Contains(this.gameObject.GetInstanceID()))
-        {
-            RecordReferenceParameters();
+    void RecalculateAnchors(){
+        RecordReferenceParameters();
             if (refParentTransform != null)
             {
                 refParentTransform.GetWorldCorners(refParentCorners);
@@ -124,7 +118,22 @@ public class UIMeshAnchoringV2 : MonoBehaviour
                 SetOffsets(refParentCorners);
                 hasStarted = true;
             }
-            SetOffsets(refParentCorners);
+            SetOffsets(refParentCorners); 
+    }
+
+#if UNITY_EDITOR
+    bool hasStarted = false;
+
+    private void OnDrawGizmos()
+    {
+        if (EditorApplication.isPlaying)
+        {
+            return;
+        }
+
+        if (Selection.Contains(this.gameObject.GetInstanceID()) && (EditorWindow.focusedWindow is SceneView))
+        {
+            RecalculateAnchors();
         }
         else
         {
